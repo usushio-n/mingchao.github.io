@@ -1,5 +1,7 @@
-import { dimensions, matchResonator, questions, scoreAnswers, sharedTendency } from "./assessment.js";
+import { dimensions, drawQuestions, matchResonator, QUIZ_LENGTH, scoreAnswers, sharedTendency } from "./assessment.js";
+import { drawRadar } from "./radar.js";
 import { resonators } from "./resonators.js";
+import { createVoicePlayer } from "./voice-player.js";
 
 const element = (id) => document.getElementById(id);
 const form = element("quiz-form");
@@ -8,22 +10,19 @@ const title = element("question-title");
 const next = element("next");
 const previous = element("previous");
 const progress = element("progress");
-const audio = element("character-voice");
-const voiceStatus = element("voice-status");
-const replay = element("replay");
-const pause = element("pause");
+const voicePlayer = createVoicePlayer(element("voice-panel"));
 const portrait = element("portrait");
 const portraitError = element("portrait-error");
 const shareFallback = element("share-fallback");
 const shareStatus = element("share-status");
-const answers = Array(questions.length).fill(null);
+const answers = Array(QUIZ_LENGTH).fill(null);
+let questions = [];
 let questionIndex = 0;
 let currentResult = null;
-let playRequest = 0;
 
 element("character-count").textContent = resonators.length;
-element("question-total").textContent = questions.length;
-progress.max = questions.length;
+element("question-total").textContent = QUIZ_LENGTH;
+progress.max = QUIZ_LENGTH;
 
 function showScreen(id, heading) {
   document.querySelectorAll("main > section").forEach((screen) => {
@@ -45,9 +44,13 @@ function updateProgress() {
 }
 
 function renderQuestion() {
+  const [, prompt, setting] = questions[questionIndex];
   const isLast = questionIndex === questions.length - 1;
   element("question-number").textContent = String(questionIndex + 1).padStart(2, "0");
-  title.textContent = questions[questionIndex][1];
+  title.textContent = prompt;
+  const settingLabel = element("question-setting");
+  settingLabel.textContent = setting ? `索拉里斯情境 · ${setting}` : "";
+  settingLabel.hidden = !setting;
   choices.forEach((choice) => {
     choice.checked = Number(choice.value) === answers[questionIndex];
   });
@@ -64,50 +67,23 @@ function goToQuestion(index) {
 }
 
 function renderTraits(scores) {
+  const scaled = scores.map((score) => ((score - 1) / 4) * 100);
   const traits = dimensions.map(({ name }, index) => {
-    const score = ((scores[index] - 1) / 4) * 100;
     const group = document.createElement("div");
     const term = document.createElement("dt");
     const value = document.createElement("dd");
-    const track = document.createElement("span");
-    const fill = document.createElement("span");
 
     term.textContent = name;
-    value.textContent = Math.round(score);
-    track.className = "trait-track";
-    track.setAttribute("aria-hidden", "true");
-    fill.className = "trait-fill";
-    fill.style.setProperty("--score", `${score}%`);
-    track.append(fill);
-    value.append(track);
+    value.textContent = Math.round(scaled[index]);
     group.append(term, value);
     return group;
   });
   element("traits").replaceChildren(...traits);
-}
-
-function setReplayLabel(label) {
-  element("replay-label").textContent = label;
-}
-
-async function playVoice() {
-  if (!currentResult?.profile.voice) return;
-  const request = ++playRequest;
-  voiceStatus.textContent = "正在加载语音…";
-  if (audio.error) audio.load();
-  if (audio.readyState && audio.currentTime !== 0) audio.currentTime = 0;
-  try {
-    await audio.play();
-  } catch (error) {
-    if (request !== playRequest) return;
-    voiceStatus.textContent = error.name === "NotAllowedError"
-      ? "浏览器阻止了自动播放。点击「播放语音」即可收听。"
-      : "语音加载失败，请点击播放重试。";
-  }
+  drawRadar(element("radar-plot"), scaled);
 }
 
 function renderResult() {
-  const scores = scoreAnswers(answers);
+  const scores = scoreAnswers(questions, answers);
   const profile = matchResonator(scores, resonators);
   currentResult = { profile };
   const tendency = sharedTendency(scores, profile.vector);
@@ -120,22 +96,18 @@ function renderResult() {
   portraitError.hidden = true;
   portrait.alt = `${profile.name}的角色立绘`;
   portrait.src = profile.portrait;
-  renderTraits(scores);
   shareFallback.hidden = true;
   shareStatus.textContent = "";
 
-  setReplayLabel("播放语音");
-  pause.disabled = true;
-  replay.disabled = !profile.voice;
-  element("voice-transcript").textContent = profile.voice ? `「${profile.voice.transcript}」` : "";
-  voiceStatus.textContent = profile.voice ? "" : "这位角色的原声还在补充中。";
-  if (profile.voice) audio.src = profile.voice.path;
+  voicePlayer.setClip(profile.voice);
   showScreen("result", element("result-title"));
   // Call play in the final submit gesture, before yielding to any asynchronous work.
-  void playVoice();
+  void voicePlayer.play();
+  renderTraits(scores);
 }
 
 element("start").addEventListener("click", () => {
+  questions = drawQuestions();
   renderQuestion();
   showScreen("quiz", title);
 });
@@ -161,35 +133,9 @@ portrait.addEventListener("error", () => {
   if (currentResult) portraitError.hidden = false;
 });
 
-replay.addEventListener("click", playVoice);
-pause.addEventListener("click", () => {
-  playRequest++;
-  audio.pause();
-  voiceStatus.textContent = "已暂停，可以重播。";
-  replay.focus();
-});
-
-audio.addEventListener("playing", () => {
-  if (audio.paused || !currentResult) return;
-  voiceStatus.textContent = `正在播放 · ${currentResult.profile.voice.title}`;
-  setReplayLabel("重播语音");
-  pause.disabled = false;
-});
-audio.addEventListener("pause", () => {
-  if (audio.paused) pause.disabled = true;
-});
-audio.addEventListener("ended", () => {
-  if (!currentResult) return;
-  pause.disabled = true;
-  voiceStatus.textContent = "播放完毕，可以重播。";
-});
-
 element("retry").addEventListener("click", () => {
   currentResult = null;
-  playRequest++;
-  audio.pause();
-  audio.removeAttribute("src");
-  audio.load();
+  voicePlayer.setClip(null);
   answers.fill(null);
   questionIndex = 0;
   showScreen("home", element("home-title"));

@@ -3,8 +3,8 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="theme-color" content="#0e1314">
-  <meta name="description" content="一份 20 题的鸣潮同人角色人格测试。测出你的五维倾向，找到与你同频的共鸣者。">
+  <meta name="theme-color" content="#101219">
+  <meta name="description" content="从 60 道日常与《鸣潮》情境题中随机抽取 20 题，找到与你同频的共鸣者。">
   <title>共鸣档案 · 鸣潮角色人格测试</title>
   <link rel="stylesheet" href="./styles.css">
   <script type="module" src="./app.js"></script>
@@ -32,7 +32,7 @@
       <div class="hero-copy">
         <p class="eyebrow">鸣潮角色人格测试</p>
         <h1 id="home-title" tabindex="-1">如果共鸣有形，<br>你会是谁<span class="accent">？</span></h1>
-        <p class="intro">用 20 道题描摹你的性格频谱，<br class="wide-only">找到与你同频的《鸣潮》共鸣者。</p>
+        <p class="intro">从 60 道日常与索拉里斯情境题中随机抽取 20 道，<br class="wide-only">找到与你同频的《鸣潮》共鸣者。</p>
         <button class="button button-primary start-button" id="start" type="button">开始测试 <span aria-hidden="true">↗</span></button>
         <ul class="hero-meta">
           <li><strong>约 3 分钟</strong><span>测试时长</span></li>
@@ -51,7 +51,7 @@
     <section class="quiz" id="quiz" aria-labelledby="question-title" hidden>
       <div class="section-intro">
         <h2>共鸣测试</h2>
-        <p>按你平时的情况选择最贴近的一项。</p>
+        <p>按平时的情况作答。遇到游戏情境，想象你在场会怎么做。</p>
       </div>
       <form class="quiz-card" id="quiz-form">
         <div class="quiz-progress">
@@ -59,6 +59,7 @@
           <p id="answer-count"></p>
         </div>
         <progress id="progress" aria-label="已回答题目"></progress>
+        <p class="question-setting" id="question-setting" hidden></p>
         <h3 id="question-title" tabindex="-1"></h3>
         <fieldset aria-labelledby="question-title">
           <label class="option" for="answer-1"><input id="answer-1" type="radio" name="answer" value="1" required><span>非常不符合</span></label>
@@ -81,14 +82,23 @@
           <h2 id="result-title" tabindex="-1"></h2>
           <p class="result-type" id="result-type"></p>
           <p class="result-description" id="match-reason"></p>
-          <div class="voice-panel">
+          <div class="voice-panel" id="voice-panel">
+            <p class="voice-title" id="voice-title">角色语音</p>
             <p class="voice-transcript" id="voice-transcript"></p>
-            <div class="voice-actions">
-              <button class="button button-primary" id="replay" type="button"><span id="replay-label">播放语音</span> <span aria-hidden="true">▶</span></button>
-              <button class="button button-secondary" id="pause" type="button" disabled>暂停</button>
+            <div class="voice-controls" role="group" aria-labelledby="voice-title">
+              <div class="voice-player">
+                <button class="voice-toggle" id="voice-toggle" type="button" aria-label="播放语音" disabled>
+                  <span aria-hidden="true" class="voice-symbol"></span>
+                </button>
+                <div class="voice-track">
+                  <input class="voice-progress" id="voice-progress" type="range" min="0" max="1" step="any" value="0" aria-label="语音播放进度" disabled>
+                  <p class="voice-time" aria-hidden="true"><span id="voice-elapsed">0:00.0</span><span id="voice-duration">—</span></p>
+                </div>
+              </div>
+              <button class="button button-secondary voice-replay" id="replay" type="button" disabled><span aria-hidden="true">↻</span> 重播</button>
             </div>
             <p class="status" id="voice-status" role="status"></p>
-            <audio id="character-voice" preload="none"></audio>
+            <audio id="character-voice" preload="metadata"></audio>
           </div>
         </div>
         <figure class="result-figure">
@@ -101,8 +111,11 @@
       <div class="result-details">
         <section class="spectrum" aria-labelledby="spectrum-title">
           <h3 id="spectrum-title">你的性格频谱</h3>
-          <p>五项分数由答题结果换算为 0–100，同一维度的两端各有特点。</p>
-          <dl class="traits" id="traits"></dl>
+          <p>由内向外为 0–100 分。数值表示性格倾向。</p>
+          <div class="radar">
+            <canvas class="radar-plot" id="radar-plot" width="360" height="360" aria-hidden="true"></canvas>
+            <dl class="radar-labels" id="traits"></dl>
+          </div>
         </section>
         <div class="result-actions">
           <button class="button button-secondary" id="share" type="button">分享结果 <span aria-hidden="true">↗</span></button>

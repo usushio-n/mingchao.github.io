@@ -2,6 +2,8 @@
 
 以下立绘和普通话原声来自《鸣潮》。立绘取自鸣潮 BWIKI、Wuthering Waves Wiki 和 Skowt，原声取自 encore.moe 和灰机 Wiki 鸣潮百科。网页按需加载本地 WebP 立绘和 MP3 语音。素材权利归库洛游戏及相关权利人所有。
 
+首页的乘霄山背景来自 [Steam 创意工坊的场景壁纸](https://steamcommunity.com/sharedfiles/filedetails/?id=3282081485)。
+
 | 角色 | 立绘 | 普通话原声 |
 | --- | --- | --- |
 | 漂泊者 | [立绘](https://patchwiki.biligame.com/images/wutheringwaves/8/89/f3psxmygthiivnx0p7cmtvcwg3iob3c.png) | [入队·一](https://api.encore.moe/resource/Data/Game/Aki/WwiseAudio/Events/zh/play_favor_word_nvzhu_join_team_01.mp3) |
